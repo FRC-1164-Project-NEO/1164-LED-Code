@@ -36,7 +36,7 @@ void setup()
   //Wire.begin(I2C_ADDRESS);
   //Wire.onReceive(i2cReceive);
   //Serial.begin(9600);  // not sure what this one is for
-  
+                         
   
   lower.lowerLED = 0;
   lower.upperLED = 79;
