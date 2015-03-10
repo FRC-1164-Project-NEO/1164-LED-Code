@@ -4,7 +4,7 @@
 #include<FastLED.h>
 //#include<Wire.h>
 
-#define NUM_LEDS 80
+#define NUM_LEDS 62 // 62
 #define DATA_PIN 12  // green wire
 #define CLOCK_PIN 11  // blue wire 
 //#define I2C_ADDRESS 83  // just picked a number between 0 and 255
@@ -25,6 +25,7 @@ void moveInRange(LEDSubset &subset);
 void solid(LEDSubset &subset, uint32_t color);
 
 LEDSubset lower;
+LEDSubset middle;
 LEDSubset upper;
 
 void setup()
@@ -38,22 +39,44 @@ void setup()
   //Serial.begin(9600);  // not sure what this one is for
                          // It sets the baud rate of the serial port. Basically the speed of the two controllers talking
   
-  lower.lowerLED = 0;
-  lower.upperLED = 79;
+  lower.lowerLED = 2; // 0
+  lower.upperLED = 18; // 20
   lower.currentIndex = 0;
   lower.goingUp = true;
   
-  upper.lowerLED = 40;
-  upper.upperLED = 79;
+  middle.lowerLED = 22; //21
+  middle.upperLED = 39; // 40
+  middle.currentIndex = 39;
+  middle.goingUp = false;
+  
+  upper.lowerLED = 43; // 41
+  upper.upperLED = 59; // 61
   upper.currentIndex = 0;
   upper.goingUp = true;
+  
+  
 }
 
 void loop()
 {
   dotChase(lower, CRGB::Purple, 1, time);
+  dotChase(middle, CRGB::Purple, 1, time);
+  dotChase(upper, CRGB::Purple, 1, time);
  // oppDotChase(lower, CRGB::Red, 5, time);
   
+  leds[0] = CRGB::red;
+  leds[1] = CRGB::red;
+  
+  leds[19] = CRGB::red;
+  leds[20] = CRGB::red;
+  
+  leds[21] = CRGB::red;
+  leds[40] = CRGB::red;
+  
+  leds[41] = CRGB::red;
+  leds[42] = CRGB::red;
+  leds[60] = CRGB::red;
+  leds[61] = CRGB::red;
   
   FastLED.show();
   delay(50);
@@ -76,6 +99,7 @@ void dotChase(LEDSubset &subset, uint32_t color, int timing, int time)  {
     moveInRange(subset); 
     
     leds[subset.currentIndex] = color;
+    leds[subset.currentIndex + 1] = color;
   }
 }
 
