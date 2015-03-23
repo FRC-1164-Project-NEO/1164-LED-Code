@@ -1,7 +1,7 @@
 // LED ardiuno code to read I2C data from master and output LED lights from data
 
 
-#include<FastLED.h>
+#include <FastLED.h>
 //#include<Wire.h>
 
 #define NUM_LEDS 62 // 62
@@ -11,6 +11,9 @@
 CRGB leds[NUM_LEDS];
 int time = 0;
 
+const uint32_t PURPLE = 0xFF008F;
+const uint32_t ORANGE = 0xFF1E00;
+
 struct LEDSubset {
   int lowerLED;
   int upperLED;
@@ -18,33 +21,43 @@ struct LEDSubset {
   boolean goingUp;
 };
 
+// full function for sending the LEDS up and down the strip
+void stripChases(uint32_t color);
+void Fire2012(); // run simulation frame
+void solid(LEDSubset &subset, uint32_t color);
+void crazyLights();
+
+
 void dotChase(LEDSubset &subset, uint32_t color, int timing, int time);
 void oppDotChase(LEDSubset &subset, uint32_t color, int timing, int time);
-
 void moveInRange(LEDSubset &subset);
-void solid(LEDSubset &subset, uint32_t color);
+void heatColor(int index, byte heat);
 
 LEDSubset lower;
 LEDSubset middle;
 LEDSubset upper;
+
+
+#define OFF 0
+#define RED_RUN 1
+#define BLUE_RUN 2
+#define SOLID_RED 3
+#define SOLID_BLUE 4
+#define NEO_FIRE 5
+#define CRAZY_LIGHT 6
 
 void setup()
 {
   // chipset for Andymark strip is WS2801
   FastLED.addLeds<WS2801, DATA_PIN, CLOCK_PIN, RGB>(leds, NUM_LEDS);
   
-  // Start I2C bus
-  //Wire.begin(I2C_ADDRESS);
-  //Wire.onReceive(i2cReceive);
-  //Serial.begin(9600);  // not sure what this one is for
-                         // It sets the baud rate of the serial port. Basically the speed of the two controllers talking
   
   lower.lowerLED = 2; // 0
   lower.upperLED = 18; // 20
   lower.currentIndex = 0;
   lower.goingUp = true;
   
-  middle.lowerLED = 22; //21
+  middle.lowerLED = 23; //21
   middle.upperLED = 39; // 40
   middle.currentIndex = 39;
   middle.goingUp = false;
@@ -55,43 +68,132 @@ void setup()
   upper.goingUp = true;
   
   
+  pinMode(OFF, INPUT_PULLUP);
+  pinMode(RED_RUN, INPUT_PULLUP);
+  pinMode(BLUE_RUN, INPUT_PULLUP);
+  pinMode(SOLID_RED, INPUT_PULLUP);
+  pinMode(SOLID_BLUE, INPUT_PULLUP);
+  pinMode(NEO_FIRE, INPUT_PULLUP);
+  pinMode(CRAZY_LIGHT, INPUT_PULLUP);
 }
+
+
 
 void loop()
 {
-  dotChase(lower, CRGB::Purple, 1, time);
-  dotChase(middle, CRGB::Purple, 1, time);
-  dotChase(upper, CRGB::Purple, 1, time);
- // oppDotChase(lower, CRGB::Red, 5, time);
   
-  leds[0] = CRGB::red;
-  leds[1] = CRGB::red;
   
-  leds[19] = CRGB::red;
-  leds[20] = CRGB::red;
   
-  leds[21] = CRGB::red;
-  leds[40] = CRGB::red;
   
-  leds[41] = CRGB::red;
-  leds[42] = CRGB::red;
-  leds[60] = CRGB::red;
-  leds[61] = CRGB::red;
+  
+  
+  
   
   FastLED.show();
-  delay(50);
-  time++;
-  //if (time > 500)
-     //time = 0;
-}
-/*
-void i2cReceive(int bytesRecived)  {
   
+  time++;
 }
-*/
+
+
+
+// --------------------------------------------------------------- Different Strip settings settings -----------------------------------------------------
+
+// full function for sending the LEDS up and down the strip
+void stripChases(uint32_t color) {
+  dotChase(lower, PURPLE, 1, time);
+  dotChase(middle, PURPLE, 1, time);
+  dotChase(upper, PURPLE, 1, time);
+ // oppDotChase(lower, CRGB::Red, 5, time);
+  
+  //uint32_t color = CRGB::Blue;
+  
+  leds[0] = color;
+  leds[1] = color;
+  
+  leds[19] = color;
+  leds[20] = color;
+  
+  leds[21] = color;
+  leds[22] = color;
+  leds[40] = color;
+  
+  leds[41] = color;
+  leds[42] = color;
+  leds[60] = color;
+  leds[61] = color;
+  
+  delay(50);
+}
+
+void Fire2012()
+{
+// Array of temperature readings at each simulation cell
+  static byte heat[NUM_LEDS];
+
+  // Step 1.  Cool down every cell a little
+    for( int i = 0; i < NUM_LEDS; i++) {
+      heat[i] = qsub8( heat[i],  random8(0, ((COOLING * 10) / NUM_LEDS) + 2));
+    }
+  
+    // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+    for( int k= NUM_LEDS - 1; k >= 2; k--) {
+      heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;
+    }
+    
+    // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
+    if( random8() < SPARKING ) {
+      int y = random8(7);
+      heat[y] = qadd8( heat[y], random8(160,255) );
+    }
+
+    // Step 4.  Map from heat cells to LED colors
+    for( int j = 0; j < NUM_LEDS; j++) {
+        //leds[j] = HeatColor( heat[j]);
+        heatColor(j, heat[j]);
+    }
+}
+void crazyLights() {
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i].r = random(0, 255);
+    leds[i].g = random(0,255);
+    leds[i].b = random(0,255);
+    
+  }
+}
+
+
+
+
+// ----------------------------------------------------------------------- Fire functions ----------------------------------------------------------------------
+
+void heatColor(int index, byte heat) {
+  /*
+  leds[index].r = heat; //(heat * (25/255)) + (255-255);
+  if ((heat - 50) > 0) {
+    leds[index].b = heat - 50;
+  }
+  else
+    leds[index].b = 0;
+    */
+    
+    if (heat > 127) {
+      //leds[index] = PURPLE;
+      leds[index].r = heat;
+      leds[index].b = heat - 50;
+    }
+    else {
+      
+      int red = 255;
+      int green = 28;
+      leds[index].r = red;
+      leds[index].g = green;
+       
+    }
+}
 
 
 //----------------------------------------------------------------------------- Functions for moving the LEDS -----------------------------------------------------
+
 void dotChase(LEDSubset &subset, uint32_t color, int timing, int time)  {
   if ((time % timing) == 0) {
     solid(subset, 0xFF1E00);  // nice orange color!!!!
